@@ -1,0 +1,27 @@
+https://hermes.informal.systems/installation.html#install-by-downloading
+
+===================== Install by source
+
+tar -C $HOME/.hermes/bin/ -vxzf hermes-v1.0.0-rc.0-x86_64-unknown-linux-gnu.tar.gz
+
+Make the directory where we'll place the binary:
+
+mkdir -p $HOME/.hermes/bin
+Extract the binary archive:
+
+
+tar -C $HOME/.hermes/bin/ -vxzf $ARCHIVE_NAME
+Update your path, by adding this line in your .bashrc or .zshrc shell configuration file:
+
+
+export PATH="$HOME/.hermes/bin:$PATH"
+NOTE: The binary may be initially prevented from running if you're on MacOS. See the "Open Anyway" instructions from this support forum if that is the case.
+
+You should now be able to run Hermes by invoking the hermes executable.
+
+=============== Check out version
+hermes version
+
+hermes v1.0.0-rc.0
+
+
