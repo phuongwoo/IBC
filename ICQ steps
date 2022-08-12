@@ -1,0 +1,114 @@
+================= Guide from here
+https://github.com/kj89/icq_stride
+
+================= Step to do
+1. Install 
+cd $HOME
+git clone https://github.com/Stride-Labs/interchain-queries.git
+cd interchain-queries
+go build
+sudo mv interchain-queries /usr/local/bin/icq
+
+2. Create folder cd $HOME && mkdir .icq
+
+---- Make configuration file
+
+sudo tee $HOME/.icq/config.yaml > /dev/null <<EOF
+default_chain: w1_stride
+chains:
+  w1_gaia:
+    key: w1_Gaia
+    chain-id: GAIA
+    rpc-addr: http://127.0.0.1:23657       
+    grpc-addr: http://127.0.0.1:23090     
+    account-prefix: cosmos
+    keyring-backend: test
+    gas-adjustment: 1.2
+    gas-prices: 0.001uatom
+    key-directory: /root/.icq/keys
+    debug: false
+
+    timeout: 20s
+    block-timeout: ""
+    output-format: json
+    sign-mode: direct
+  w1_stride:
+    key: w1_pw
+    chain-id: STRIDE-TESTNET-2
+    rpc-addr: http://127.0.0.1:16657      
+    grpc-addr: http://127.0.0.1:16090     
+    account-prefix: stride
+    keyring-backend: test
+    gas-adjustment: 1.2
+    gas-prices: 0.001ustrd
+    key-directory: /root/.icq/keys
+    debug: false
+    timeout: 20s
+    block-timeout: ""
+    output-format: json
+    sign-mode: direct
+cl: {}
+EOF
+
+
+3 Import Wallet
+
+icq keys restore --chain w1_stride w1_pw
+icq keys restore --chain w1_gaia w1_Gaia
+
+root@vmi844997:~# icq keys restore --chain w1_stride w1_pw
+Enter mnemonic 🔑: '24 mnenomic phrase'
+
+stride1mtj4gjt5td4ujwexy90zeq5ug33s78wzn7jzst
+root@vmi844997:~#
+root@vmi844997:~# icq keys restore --chain w1_gaia w1_Gaia
+Enter mnemonic 🔑: '24 mnenomic phrase'
+
+cosmos14uhtwgp7z522phnpr8hgmyv8qlsnju8sgy54lp
+root@vmi844997:~#
+
+
+
+4. Create systemd service
+sudo tee /etc/systemd/system/icqd.service > /dev/null <<EOF
+[Unit]
+Description=Interchain Query Service
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=$(which icq) run --debug
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable icqd
+sudo systemctl restart icqd
+
+sudo systemctl stop icqd
+
+sudo systemctl status icqd
+
+
+5. Start
+
+root@vmi844997:~# sudo systemctl restart icqd
+root@vmi844997:~# journalctl -u icqd -f -o cat
+Started Interchain Query Service.
+
+root@vmi844997:~# sudo systemctl status icqd
+● icqd.service - Interchain Query Service
+     Loaded: loaded (/etc/systemd/system/icqd.service; enabled; vendor preset: enabled)
+     Active: active (running) since Thu 2022-08-11 17:31:55 CEST; 5min ago
+   Main PID: 3343242 (icq)
+      Tasks: 9 (limit: 19142)
+     Memory: 10.8M
+     CGroup: /system.slice/icqd.service
+             └─3343242 /usr/local/bin/icq run --debug
+
+Aug 11 17:31:55 vmi844997.contaboserver.net systemd[1]: Started Interchain Query Service.
