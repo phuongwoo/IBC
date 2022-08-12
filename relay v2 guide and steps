@@ -1,0 +1,202 @@
+++++++++++++++++++++ Install Relay V2 
+
+------ Guide:
+https://github.com/cosmos/relayer?fbclid=IwAR3fBu3kTtqDCBxxbR3W4SwSjckoIDBUuQ2J-Z-nsmTA0cGV6-8tC70_t_U
+
+------ Command:
+git clone https://github.com/cosmos/relayer.git
+cd relayer/
+git checkout v2.0.0-rc4
+make install 
+
+------ Check version
+root@vmi844997:~/relayer# rly version
+version: 2.0.0-rc4
+commit: unknown
+cosmos-sdk: v0.45.6
+go: go1.18.3 linux/amd64
+
+
+++++++++++++ Configure for Relay
+rly config init --memo "Discord ID"  
+cd $HOME/.relayer/config
+check config.yaml:
+
+global:
+    api-listen-addr: :5183
+    timeout: 100s
+    memo: "phuongwoo#7399"
+    light-cache-size: 20
+
+chains:
+    {}
+paths:
+    stride_gaia.json:
+        src:
+            chain-id: STRIDE-TESTNET-2
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        dst:
+            chain-id: GAIA
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        src-channel-filter:
+            rule: allowlist
+            channel-list:
+                - channel-0
+                - channel-1
+                - channel-2
+                - channel-3
+                - channel-4
+
+
+    Path_Stride_Gaia:
+        src:
+            chain-id: STRIDE-TESTNET-2
+            client-id: 07-tendermint-158
+            connection-id: connection-1275
+        dst:
+            chain-id: GAIA
+            client-id: 07-tendermint-21
+            connection-id: connection-821
+        src-channel-filter:
+            rule: ""
+            channel-list: []
+
+
++++++++++++++++ Add chain by json file
+
+
+nano stride_testnet_2.json
+
+{
+  "type": "cosmos",
+  "value": {
+    "key": "w1_pw",
+    "chain-id": "STRIDE-TESTNET-2",
+    "rpc-addr": "http://localhost:16657",
+    "account-prefix": "stride",
+    "keyring-backend": "test",
+    "gas-adjustment": 1.2,
+    "gas-prices": "0.0025ustrd",
+    "debug": true,
+    "timeout": "20s",
+    "output-format": "json",
+    "sign-mode": "direct"
+  }
+}
+
+nano gaia.json
+
+{
+  "type": "cosmos",
+  "value": {
+    "key": "w1_Gaia",
+    "chain-id": "GAIA",
+    "rpc-addr": "http://localhost:23657",
+    "account-prefix": "cosmos",
+    "keyring-backend": "test",
+    "gas-adjustment": 1.2,
+    "gas-prices": "0.0025uatom",
+    "debug": true,
+    "timeout": "20s",
+    "output-format": "json",
+    "sign-mode": "direct"
+  }
+}
+
+rly chains add --file stride_testnet_2.json STRIDE-TESTNET-2
+rly chains add --file gaia.json GAIA
+
+++++++++++++= Add key
+
+rly keys restore STRIDE-TESTNET-2 w1_pw "24 mnemomic phrase"
+rly keys restore GAIA w1_Gaia "24 mnemomic phrase"
+
+
+
+root@vmi844997:~/.relayer/config# rly chains add --file stride_testnet_2.json STRIDE-TESTNET-2
+root@vmi844997:~/.relayer/config# rly chains add --file gaia.json GAIA
+root@vmi844997:~/.relayer/config# rly keys restore STRIDE-TESTNET-2 w1_pw "24 mnemomic phrase"
+stride1mtj4gjt5td4ujwexy90zeq5ug33s78wzn7jzst
+root@vmi844997:~/.relayer/config#
+root@vmi844997:~/.relayer/config#
+root@vmi844997:~/.relayer/config# rly keys restore GAIA w1_Gaia "24 mnemomic phrase"
+cosmos14uhtwgp7z522phnpr8hgmyv8qlsnju8sgy54lp
+root@vmi844997:~/.relayer/config#
+
+
+
+
++++++++++++ List key
+
+root@vmi844997:~/.relayer# rly keys list STRIDE-TESTNET-2
+key(w1_pw) -> stride1mtj4gjt5td4ujwexy90zeq5ug33s78wzn7jzst
+root@vmi844997:~/.relayer# rly keys list GAIA
+key(w1_Gaia) -> cosmos14uhtwgp7z522phnpr8hgmyv8qlsnju8sgy54lp
+root@vmi844997:~/.relayer#
+
+
+
++++++++++= Query balance
+
+rly q balance GAIA
+rly q balance STRIDE-TESTNET-2
+
+root@vmi844997:~# rly q balance GAIA
+address {cosmos14uhtwgp7z522phnpr8hgmyv8qlsnju8sgy54lp} balance {10000000uatom}
+root@vmi844997:~# rly q balance STRIDE-TESTNET-2
+address {stride1mtj4gjt5td4ujwexy90zeq5ug33s78wzn7jzst} balance {3999000transfer/channel-0/uatom,9000transfer/channel-36/ujunox,1979156stuatom,4885084ustrd}
+root@vmi844997:~#
+
+ 
+
+root@ubunu2004:~/.relayer/config# rly chains list
+ 1: GAIA                 -> type(cosmos) key(✔) bal(✔) path(✔)
+ 2: STRIDE-TESTNET-2     -> type(cosmos) key(✔) bal(✔) path(✔)
+root@ubunu2004:~/.relayer/config#
+
+++++++++++++= Make system service
+
+sudo tee /etc/systemd/system/rlyd.service > /dev/null <<EOF
+[Unit]
+Description=V2 Go relayer
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=$(which rly) start P_Stride_Gaia --memo "phuongwoo#7399"
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+++++++= Command to manage service
+
+sudo systemctl daemon-reload
+sudo systemctl enable rlyd
+sudo systemctl restart rlyd
+
+sudo journalctl -fu rlyd -o cat
+
+sudo systemctl stop rlyd
+sudo systemctl disable rlyd
+
++++++++++++++++ Path
+
+rly paths new STRIDE-TESTNET-2 GAIA P_Stride_Gaia
+rly paths new STRIDE-TESTNET-2 GAIA stride_gaia.json
+
+++++++== Create by link command
+rly transact link P_Stride_Gaia  
+rly transact link stride_gaia.json
+++++++== Create manual
+
+rly transact clients P_Stride_Gaia
+rly transact connection P_Stride_Gaia
+rly transact channel P_Stride_Gaia
+
+
