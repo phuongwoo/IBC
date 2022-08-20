@@ -34,7 +34,7 @@ chains:
     sign-mode: direct
   w1_stride:
     key: w1_pw
-    chain-id: STRIDE-TESTNET-2
+    chain-id: STRIDE-TESTNET-4
     rpc-addr: http://127.0.0.1:16657      
     grpc-addr: http://127.0.0.1:16090     
     account-prefix: stride
